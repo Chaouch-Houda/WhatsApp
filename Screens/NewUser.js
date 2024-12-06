@@ -1,4 +1,3 @@
-
 import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
 import {
@@ -8,13 +7,15 @@ import {
   View,
   TextInput,
   Image,
+  BackHandler,
   TouchableHighlight,
 } from "react-native";
 
 import firebase from "../Config";
 const auth = firebase.auth();
 
-export default function Authentification(props) {
+
+export default function NewUser(props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const refInput2 = useRef();
@@ -28,7 +29,7 @@ export default function Authentification(props) {
       >
         <Image source={require("../assets/logo.png")} style={styles.logo} />
 
-        <Text style={styles.title}>Connexion</Text>
+        <Text style={styles.title}>Bienvenue</Text>
 
         <TextInput
           onChangeText={(text) => {
@@ -54,37 +55,42 @@ export default function Authentification(props) {
           ref={refInput2}
         />
 
+        <TextInput
+          onChangeText={(text) => {
+            setPassword(text);
+          }}
+          placeholder="Confirmer mot de passe"
+          style={styles.input}
+          secureTextEntry={true}
+          placeholderTextColor="#888"
+          ref={refInput2}
+        />
+
         <TouchableHighlight
           style={styles.button}
-            onPress={() => {
-              if (!email || !password) {
-                alert("Veuillez entrer votre email et mot de passe.");
-                return;
-              }
-
-              auth.signInWithEmailAndPassword(email,password).then(()=>{
-                const currentId = auth.currentUser.uid;
-                props.navigation.replace("Home",{currentId:currentId});
-              })
-              .catch((error) => {
-                  alert(error.message);
-              })
+          onPress={() => {
+            auth.createUserWithEmailAndPassword(email,password).then(()=>{
+              const currentId = auth.currentUser.uid;
+              props.navigation.replace("Home",{currentId:currentId});
+            })
+            .catch((error) => {
+                alert(error);
+            })
           }}
         >
-          <Text style={styles.buttonText}>Se connecter</Text>
+          <Text style={styles.buttonText}>S'inscrire</Text>
         </TouchableHighlight>
-
-        <View style={{ display:"flex", flexDirection:"row",justifyContent: "center", alignItems: "center" }}>
-          <Text>Vous n'avez pas de compte ?</Text>
-          <TouchableHighlight
-            style={styles.secondButton}
-            onPress={() => {
-              props.navigation.replace("NewUser");
-            }}
-          >
-            <Text>S'inscrire</Text>
-          </TouchableHighlight>
-    </View>
+        <View style={{flex:1, flexDirection:"row", justifyContent: "center", alignItems: "center"}}>
+            <Text>Vous avez déjà un compte ?</Text>
+            <TouchableHighlight
+              style={styles.secondButton}
+              onPress={() => {
+                props.navigation.replace("Auth");
+              }}
+            >
+              <Text>Se Connecter</Text>
+            </TouchableHighlight>
+        </View>
       </ImageBackground>
     </View>
   );
@@ -94,6 +100,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  rowContainer: {
+    flexDirection: 'row', 
+    alignItems: 'center',      
+    justifyContent: 'center',   
+    marginTop: 20,               
   },
   background: {
     flex: 1,
@@ -106,6 +118,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     marginBottom: 20,
+    marginTop:60,
   },
   title: {
     fontSize: 24,
@@ -134,7 +147,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   secondButton:{
-    padding: 20,
+    padding: 6,
     paddingVertical: 13,
     marginLeft: 10,
     marginBottom: 20,
