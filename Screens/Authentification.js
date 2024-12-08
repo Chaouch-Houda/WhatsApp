@@ -9,6 +9,7 @@ import {
   TextInput,
   Image,
   TouchableHighlight,
+  Alert,
 } from "react-native";
 
 import firebase from "../Config";
@@ -62,12 +63,24 @@ export default function Authentification(props) {
                 return;
               }
 
-              auth.signInWithEmailAndPassword(email,password).then(()=>{
-                const currentId = auth.currentUser.uid;
-                props.navigation.replace("Home",{currentId:currentId});
+              auth
+              .signInWithEmailAndPassword(email,password)
+              .then((userCredential)=>{
+                const currentId = userCredential.user.uid;
+                props.navigation.replace("Home",{currentId});
               })
               .catch((error) => {
-                  alert(error.message);
+                  const errorCode = error.code;
+                  const errorMessage = error.message;
+
+                  // Gestion des erreurs courantes
+                  if (errorCode === "auth/wrong-password") {
+                    Alert.alert("Error", "Incorrect password, please try again.");
+                  } else if (errorCode === "auth/user-not-found") {
+                    Alert.alert("Error", "No user found with this email.");
+                  } else {
+                    Alert.alert("Error", errorMessage);
+                  }
               })
           }}
         >

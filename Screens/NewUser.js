@@ -18,7 +18,11 @@ const auth = firebase.auth();
 export default function NewUser(props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
   const refInput2 = useRef();
+  const refInput3 = useRef();
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -32,54 +36,64 @@ export default function NewUser(props) {
         <Text style={styles.title}>Bienvenue</Text>
 
         <TextInput
+          placeholder="Email"
+          style={styles.input}
+          keyboardType="email-address"
+          placeholderTextColor="#888"
           onChangeText={(text) => {
             setEmail(text);
           }}
           onSubmitEditing={() => {
             refInput2.current.focus();
           }}
-          placeholder="Email"
-          style={styles.input}
-          keyboardType="email"
-          placeholderTextColor="#888"
         />
 
         <TextInput
-          onChangeText={(text) => {
-            setPassword(text);
-          }}
           placeholder="Mot de passe"
           style={styles.input}
           secureTextEntry={true}
           placeholderTextColor="#888"
           ref={refInput2}
-        />
-
-        <TextInput
           onChangeText={(text) => {
             setPassword(text);
           }}
+          onSubmitEditing={() => {
+            refInput3.current.focus();
+          }}
+        />
+
+        <TextInput
           placeholder="Confirmer mot de passe"
           style={styles.input}
           secureTextEntry={true}
           placeholderTextColor="#888"
-          ref={refInput2}
+          ref={refInput3}
+          onChangeText={(text) => {
+            setConfirmPassword(text);
+          }}
         />
 
         <TouchableHighlight
           style={styles.button}
           onPress={() => {
-            auth.createUserWithEmailAndPassword(email,password).then(()=>{
-              const currentId = auth.currentUser.uid;
-              props.navigation.replace("Home",{currentId:currentId});
+            if (password !== confirmPassword) {
+              alert("Les mots de passe ne correspondent pas.");
+              return;
+            }
+            auth
+            .createUserWithEmailAndPassword(email,password)
+            .then((userCredential)=>{
+              const currentId = userCredential.user.uid;
+              props.navigation.replace("MyProfil",{currentId});
             })
             .catch((error) => {
-                alert(error);
+                alert(error.message);
             })
           }}
         >
           <Text style={styles.buttonText}>S'inscrire</Text>
         </TouchableHighlight>
+        
         <View style={{flex:1, flexDirection:"row", justifyContent: "center", alignItems: "center"}}>
             <Text>Vous avez déjà un compte ?</Text>
             <TouchableHighlight

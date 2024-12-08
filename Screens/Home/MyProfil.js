@@ -103,7 +103,7 @@ const deleteImage = () => {
        imageUri = await uploadImageToSupabase(uriImage);
      }
 
-    const ref_unprofil = ref_tableProfils.push().child("unprofil" + currentId);
+    const ref_unprofil = ref_tableProfils.child("unprofil" + currentId);
     ref_unprofil.set({
       id: currentId,
       nom,
@@ -121,7 +121,7 @@ const deleteImage = () => {
       style={styles.container}
     >
       {/* <StatusBar style="light" /> */}
-      <Text style={styles.textstyle}>Add profile</Text>
+      <Text style={styles.textstyle}>My profile</Text>
       <View>
         <TouchableHighlight onPress={pickImage} style={styles.imageWrapper}>
           <Image

@@ -16,7 +16,7 @@ export default function App() {
     <SafeAreaView  style={styles.safeArea}>
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
-      <Stack.Screen name="Auth" component={Authentification} ></Stack.Screen>
+        <Stack.Screen name="Auth" component={Authentification} ></Stack.Screen>
         <Stack.Screen name="NewUser" component={NewUser}></Stack.Screen>
         <Stack.Screen name="Home" component={Home}></Stack.Screen>
         <Stack.Screen name="ListProfil" component={ListProfil}></Stack.Screen>

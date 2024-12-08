@@ -10,22 +10,27 @@ const ref_tableProfils = database.ref("TableDeProfils");
 import bg from "../../assets/background.jpg";
 
 export default function ListProfil(props) {
-  const currentId = props.currentId;
+  const currentId = props.route.params.currentId;
   const [data, setData] = useState([]);
   const [currentUser, setCurrentUser] = useState({})
 
   useEffect(() => {
       // ref_tableProfils.once() et ref_tableProfils.on() ijib les réferences dans cette table, différence once tjib mara brk w on tjib kol ma tsir ey modification fi réference
+      // bich nzidou point l5a4ra (connected) lkol we7id fi list
+
     // Use `on` to listen to changes in the database
     const onValueChange = ref_tableProfils.on("value",(snapshot) => {
       const d = [];
       snapshot.forEach((unprofil)=> {
+        // console.log("🚀 ~ snapshot.forEach ~ unprofil.val():", unprofil.val())
         if(unprofil.val().id == currentId)
-          setCurrentUser(unprofil.val());
+          { 
+            setCurrentUser(unprofil.val());
+        // console.log("🚀 ~ snapshot.forEach ~ currentId:", currentId)
+          }
         else
           d.push(unprofil.val());
       })
-      console.log("Profils:", d);
       setData(d);
   })
   

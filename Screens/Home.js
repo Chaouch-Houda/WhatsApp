@@ -4,15 +4,16 @@ import { createMaterialBottomTabNavigator } from '@react-navigation/material-bot
 import ListProfil from './Home/ListProfil'
 import Groupe from './Home/Groupe';
 import MyProfil from './Home/MyProfil';
+import Chat from './Chat';
 
 const Tab = createMaterialBottomTabNavigator();
 export default function Home(props) {
   const currentId = props.route.params.currentId;
   return (
     <Tab.Navigator>
-        <Tab.Screen name="ListProfil" component={ListProfil} initialParams={{currentId: currentId}}></Tab.Screen>
-        <Tab.Screen name="MyProfil" component={MyProfil} initialParams={{currentId: currentId}}></Tab.Screen>
-        <Tab.Screen name="Groupe" component={Groupe} initialParams={{currentId: currentId}}></Tab.Screen>
+        <Tab.Screen name="ListProfil" component={ListProfil} initialParams={{currentId}}></Tab.Screen>
+        <Tab.Screen name="MyProfil" component={MyProfil} initialParams={{currentId}}></Tab.Screen>
+        <Tab.Screen name="Groupe" component={Groupe} initialParams={{currentId}}></Tab.Screen>
     </Tab.Navigator>
   )
 }
