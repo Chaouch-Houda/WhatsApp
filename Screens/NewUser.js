@@ -13,7 +13,7 @@ import {
 
 import firebase from "../Config";
 const auth = firebase.auth();
-
+const database = firebase.database();
 
 export default function NewUser(props) {
   const [email, setEmail] = useState("");
@@ -84,6 +84,10 @@ export default function NewUser(props) {
             .createUserWithEmailAndPassword(email,password)
             .then((userCredential)=>{
               const currentId = userCredential.user.uid;
+              // Ajouter une entrée dans Table de profils
+              database.ref(`TableDeProfils/${currentId}`).set({
+                isComplete: false, // Indique que le profil est incomplet
+              });
               props.navigation.replace("MyProfil",{currentId});
             })
             .catch((error) => {

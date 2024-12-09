@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Image,
   ImageBackground,
@@ -29,6 +29,22 @@ export default function MyProfil(props) {
   const [telephone, setTelephone] = useState();
   const [isDefaultImage, setIsDefaultImage] = useState(true);
   const [uriImage, setUriImage] = useState(null);
+
+  // Récupérer les données de profil si isComplete est true
+  useEffect(() => {
+    const ref_unprofil = ref_tableProfils.child(`unprofil${currentId}`);
+
+    ref_unprofil.once("value", (snapshot) => {
+      const data = snapshot.val();
+      if (data && data.isComplete) {
+        setNom(data.nom || "");
+        setpseudo(data.pseudo || "");
+        setTelephone(data.telephone || "");
+        setUriImage(data.uriImage || null);
+        setIsDefaultImage(!data.uriImage); // Vérifiez si une image personnalisée existe
+      }
+    });
+  }, [currentId]);
 
  // Fonction pour choisir une image dans la galerie
  const pickImage = async () => {
@@ -65,56 +81,103 @@ const deleteImage = () => {
 };
 
    // Fonction pour télécharger l'image sur Supabase
-   const uploadImageToSupabase = async (uri) => {
-    try {
-      const fileExtension = uri.split('.').pop(); 
-      const fileName = `${Date.now()}.${fileExtension}`;
-      const response = await fetch(uri);  // Obtenez le fichier depuis l'URI
-      const blob = await response.blob();  // Convertir l'URI en Blob
-      const { data, error } = await supabase.storage
-        .from("ProfileImage") // Assurez-vous que vous avez un bucket "ProfileImage"
-        .upload(fileName, blob, {
-          cacheControl: "3600",
-          upsert: true,
-        });
+  //  const uploadImageToSupabase = async (uri) => {
+  //   try {
+  //     const fileExtension = uri.split('.').pop(); 
+  //     const fileName = `${Date.now()}.${fileExtension}`;
+  //     const response = await fetch(uri);  // Obtenez le fichier depuis l'URI
+  //     const blob = await response.blob();  // Convertir l'URI en Blob
+  //     const { data, error } = await supabase.storage
+  //       .from("ProfileImage") // Assurez-vous que vous avez un bucket "ProfileImage"
+  //       .upload(fileName, blob, {
+  //         cacheControl: "3600",
+  //         upsert: true,
+  //       });
 
+  //     if (error) {
+  //       throw error;
+  //     }
+  //     console.log("Image uploaded successfully:", data);
+  //     return data.path; // Retourner le chemin du fichier téléchargé dans Supabase
+  //   } catch (error) {
+  //     console.error("Erreur lors du téléchargement de l'image sur Supabase:", error);
+  //     Alert.alert("Erreur", "Une erreur est survenue lors du téléchargement de l'image.");
+  //     return null;
+  //   }
+  // };
+
+  const uploadImageToSupabase = async (imageUri) => {
+    try {
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+  
+      const { data, error } = await supabase.storage
+        .from('avatars') // Nom de votre bucket
+        .upload(`public/${Date.now()}-${currentId}.jpg`, blob, {
+          contentType: 'image/jpeg',
+        });
+  
       if (error) {
         throw error;
       }
-      console.log("Image uploaded successfully:", data);
-      return data.path; // Retourner le chemin du fichier téléchargé dans Supabase
+  
+      // Retourne le chemin public de l'image
+      return supabase.storage.from('avatars').getPublicUrl(data.path).data.publicUrl;
     } catch (error) {
-      console.error("Erreur lors du téléchargement de l'image sur Supabase:", error);
-      Alert.alert("Erreur", "Une erreur est survenue lors du téléchargement de l'image.");
-      return null;
+      console.error("Erreur lors du téléchargement de l'image:", error);
+      throw error; // Relancer l'erreur pour qu'elle soit capturée dans saveProfile
     }
   };
 
+  
   // Sauvegarder les informations dans Firebase
   const saveProfile = async () => {
-    if (!nom || !pseudo || !telephone) {
-      console.error("Veuillez remplir tous les champs.");
-      return;
+    try {
+      // Validation des champs obligatoires
+      if (!nom || !pseudo || !telephone) {
+        Alert.alert("Erreur", "Veuillez remplir tous les champs.");
+        return;
+      }
+  
+      let imageUri = uriImage;
+  
+      // Téléchargement de l'image sur Supabase si une image est fournie
+      if (uriImage) {
+        console.log("Téléchargement de l'image...");
+        try {
+          imageUri = await uploadImageToSupabase(uriImage); // Assurez-vous que cette fonction est bien implémentée
+        } catch (uploadError) {
+          console.error("Erreur lors du téléchargement de l'image :", uploadError);
+          Alert.alert("Erreur", "Échec du téléchargement de l'image. Veuillez réessayer.");
+          return;
+        }
+      }
+  
+      // Référence à la table Firebase
+      const ref_unprofil = ref_tableProfils.child(`unprofil${currentId}`);
+  
+      // Enregistrement des données
+      await ref_unprofil.set({
+        id: currentId,
+        nom,
+        pseudo,
+        telephone,
+        uriImage: imageUri || "", // Chemin de l'image ou chaîne vide
+        isComplete: true,
+      });
+  
+      console.log("Données enregistrées avec succès!");
+  
+      // Redirection vers Home
+      props.navigation.replace("Home", { currentId });
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement des données :", error);
+      Alert.alert("Erreur", "Une erreur est survenue lors de l'enregistrement des données. Veuillez réessayer.");
     }
-
-     // Télécharger l'image sur Supabase
-     let imageUri = uriImage;
-     if (uriImage) {
-       imageUri = await uploadImageToSupabase(uriImage);
-     }
-
-    const ref_unprofil = ref_tableProfils.child("unprofil" + currentId);
-    ref_unprofil.set({
-      id: currentId,
-      nom,
-      pseudo,
-      telephone,
-      uriImage: imageUri || "", 
-    })
-      .then(() => console.log("Données enregistrées avec succès!"))
-      .catch((error) => console.error("Erreur lors de l'enregistrement des données:", error));
   };
+  
 
+  
   return (
     <ImageBackground
       source={bg}
@@ -138,6 +201,7 @@ const deleteImage = () => {
       </View>
 
       <TextInput
+        value={nom}
         onChangeText={(text) => setNom(text)}
         textAlign="start"
         placeholderTextColor="#EEEEEE"
@@ -147,6 +211,7 @@ const deleteImage = () => {
         paddingHorizontal="15"
       />
       <TextInput
+        value={pseudo} 
         onChangeText={(text) => setpseudo(text)}
         textAlign="start"
         placeholderTextColor="#EEEEEE"
@@ -156,13 +221,15 @@ const deleteImage = () => {
         paddingHorizontal="15"
       />
       <TextInput
-        onChangeText={(text) => setTelephone(text)}
-        placeholderTextColor="#EEEEEE"
-        textAlign="start"
-        placeholder="Numéro"
-        style={styles.textinputstyle}
-        paddingHorizontal="15"
-      />
+        value={telephone} 
+  onChangeText={(text) => setTelephone(text)}
+  placeholderTextColor="#EEEEEE"
+  textAlign="start"
+  placeholder="Numéro"
+  style={styles.textinputstyle}
+  paddingHorizontal="15"
+/>
+
 
       <TouchableHighlight
         onPress={saveProfile}
