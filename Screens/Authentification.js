@@ -1,6 +1,6 @@
 
 import { StatusBar } from "expo-status-bar";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ImageBackground,
   StyleSheet,
@@ -14,11 +14,69 @@ import {
 
 import firebase from "../Config";
 const auth = firebase.auth();
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Checkbox } from "react-native-paper";
+
 
 export default function Authentification(props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [stayConnected, setStayConnected] = useState(false);
   const refInput2 = useRef();
+
+  // Vérifier si l'utilisateur est déjà connecté
+  useEffect(() => {
+    const checkUserSession = async () => {
+      const userId = await AsyncStorage.getItem("userSession");
+      if (userId) {
+        props.navigation.replace("Home", { currentId: userId });
+      }
+    };
+    checkUserSession();
+  }, []);
+
+const saveUserSession = async (userId) => {
+  try {
+    await AsyncStorage.setItem('userSession', userId);
+    const test = await AsyncStorage.getItem('userSession');
+    console.log("Session sauvegardée : ", test);
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde de la session :', error);
+  }
+};
+
+
+  const login = () => {
+    if (!email || !password) {
+      alert("Veuillez entrer votre email et mot de passe.");
+      return;
+    }
+
+    auth
+    .signInWithEmailAndPassword(email,password)
+    .then((userCredential)=>{
+      const currentId = userCredential.user.uid;
+      props.navigation.replace("Home",{currentId});
+      // Sauvegarder les informations si "Rester connecté" est coché
+      if (stayConnected) {
+        saveUserSession(currentId);
+      }
+    })
+    .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+
+        // Gestion des erreurs courantes
+        if (errorCode === "auth/wrong-password") {
+          Alert.alert("Error", "Incorrect password, please try again.");
+        } else if (errorCode === "auth/user-not-found") {
+          Alert.alert("Error", "No user found with this email.");
+        } else {
+          Alert.alert("Error", errorMessage);
+        }
+    })
+}
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -54,35 +112,17 @@ export default function Authentification(props) {
           placeholderTextColor="#888"
           ref={refInput2}
         />
+        <View style={{display:'flex', alignItems:'center', flexDirection:'row',justifyContent:'start',width:'100%',marginLeft:'90'}}>
+        <Checkbox
+            status={stayConnected ? "checked" : "unchecked"}
+            onPress={() => setStayConnected(!stayConnected)}
+          />
 
+          <Text>Rester connecté</Text>
+        </View>
         <TouchableHighlight
           style={styles.button}
-            onPress={() => {
-              if (!email || !password) {
-                alert("Veuillez entrer votre email et mot de passe.");
-                return;
-              }
-
-              auth
-              .signInWithEmailAndPassword(email,password)
-              .then((userCredential)=>{
-                const currentId = userCredential.user.uid;
-                props.navigation.replace("Home",{currentId});
-              })
-              .catch((error) => {
-                  const errorCode = error.code;
-                  const errorMessage = error.message;
-
-                  // Gestion des erreurs courantes
-                  if (errorCode === "auth/wrong-password") {
-                    Alert.alert("Error", "Incorrect password, please try again.");
-                  } else if (errorCode === "auth/user-not-found") {
-                    Alert.alert("Error", "No user found with this email.");
-                  } else {
-                    Alert.alert("Error", errorMessage);
-                  }
-              })
-          }}
+            onPress={() => login()}
         >
           <Text style={styles.buttonText}>Se connecter</Text>
         </TouchableHighlight>

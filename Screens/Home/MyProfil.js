@@ -10,6 +10,7 @@ import {
   View,
   Alert,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -29,9 +30,12 @@ export default function MyProfil(props) {
   const [telephone, setTelephone] = useState();
   const [isDefaultImage, setIsDefaultImage] = useState(true);
   const [uriImage, setUriImage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // Récupérer les données de profil si isComplete est true
   useEffect(() => {
+    setLoading(true);
     const ref_unprofil = ref_tableProfils.child(`unprofil${currentId}`);
 
     ref_unprofil.once("value", (snapshot) => {
@@ -43,6 +47,7 @@ export default function MyProfil(props) {
         setUriImage(data.uriImage || null);
         setIsDefaultImage(!data.uriImage); // Vérifiez si une image personnalisée existe
       }
+      setLoading(false);
     });
   }, [currentId]);
 
@@ -66,7 +71,7 @@ export default function MyProfil(props) {
     const fileExtension = result.assets[0].uri.split('.').pop().toLowerCase();
 
     if (fileExtension === 'jpg' || fileExtension === 'jpeg') {
-      setUriImage(result.assets[0].uri);  // Mettre à jour l'URI de l'image
+      setUriImage(result.assets[0].uri);  // Màj l'URI de l'img
       setIsDefaultImage(false);
     } else {
       Alert.alert('Erreur', 'Seuls les fichiers .jpg sont autorisés.');
@@ -76,8 +81,8 @@ export default function MyProfil(props) {
 
 // Fonction pour supprimer l'image
 const deleteImage = () => {
-  setUriImage(null); // Réinitialiser l'URI de l'image
-  setIsDefaultImage(true); // Revenir à l'image par défaut
+  setUriImage(null); // Réinitialiser l'URI de l'img
+  setIsDefaultImage(true); // Revenir à l'img par défaut
 };
 
    // Fonction pour télécharger l'image sur Supabase
@@ -107,14 +112,18 @@ const deleteImage = () => {
   // };
 
   const uploadImageToSupabase = async (imageUri) => {
+    setLoading(true);
     try {
       const response = await fetch(imageUri);
+      console.log("Image fetched successfully:", response);
       const blob = await response.blob();
-  
+      console.log("Blob created:", blob);
+      const arrayBuffer = await new Response(blob).arrayBuffer();
+      
       const { data, error } = await supabase.storage
-        .from('avatars') // Nom de votre bucket
-        .upload(`public/${Date.now()}-${currentId}.jpg`, blob, {
-          contentType: 'image/jpeg',
+        .from('ProfileImage')
+        .upload(currentId, arrayBuffer, { 
+          upsert:true,
         });
   
       if (error) {
@@ -122,10 +131,12 @@ const deleteImage = () => {
       }
   
       // Retourne le chemin public de l'image
-      return supabase.storage.from('avatars').getPublicUrl(data.path).data.publicUrl;
+      return supabase.storage.from('ProfileImage').getPublicUrl(currentId).data.publicUrl;
     } catch (error) {
       console.error("Erreur lors du téléchargement de l'image:", error);
-      throw error; // Relancer l'erreur pour qu'elle soit capturée dans saveProfile
+      throw error;
+    }finally {
+      setLoading(false);
     }
   };
 
@@ -133,6 +144,7 @@ const deleteImage = () => {
   // Sauvegarder les informations dans Firebase
   const saveProfile = async () => {
     try {
+      setLoading(true);
       // Validation des champs obligatoires
       if (!nom || !pseudo || !telephone) {
         Alert.alert("Erreur", "Veuillez remplir tous les champs.");
@@ -140,12 +152,10 @@ const deleteImage = () => {
       }
   
       let imageUri = uriImage;
-  
       // Téléchargement de l'image sur Supabase si une image est fournie
       if (uriImage) {
-        console.log("Téléchargement de l'image...");
         try {
-          imageUri = await uploadImageToSupabase(uriImage); // Assurez-vous que cette fonction est bien implémentée
+          imageUri = await uploadImageToSupabase(uriImage);
         } catch (uploadError) {
           console.error("Erreur lors du téléchargement de l'image :", uploadError);
           Alert.alert("Erreur", "Échec du téléchargement de l'image. Veuillez réessayer.");
@@ -165,14 +175,15 @@ const deleteImage = () => {
         uriImage: imageUri || "", // Chemin de l'image ou chaîne vide
         isComplete: true,
       });
-  
       console.log("Données enregistrées avec succès!");
-  
+      Alert.alert("Succès", "Profil enregistré avec succès !");
       // Redirection vers Home
-      props.navigation.replace("Home", { currentId });
+      // props.navigation.replace("Home", { currentId });
     } catch (error) {
       console.error("Erreur lors de l'enregistrement des données :", error);
       Alert.alert("Erreur", "Une erreur est survenue lors de l'enregistrement des données. Veuillez réessayer.");
+    }finally {
+      setLoading(false);
     }
   };
   
@@ -184,6 +195,11 @@ const deleteImage = () => {
       style={styles.container}
     >
       {/* <StatusBar style="light" /> */}
+      {loading && ( // Overlay when loading
+      <View style={styles.overlay}>
+        <ActivityIndicator size="large" color="#ffffff" />
+      </View>
+    )}
       <Text style={styles.textstyle}>My profile</Text>
       <View>
         <TouchableHighlight onPress={pickImage} style={styles.imageWrapper}>
@@ -266,6 +282,24 @@ const deleteImage = () => {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    color: "blue",
+    flex: 1,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  overlay: {
+    position: "absolute", // Position absolute to overlay content
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1, // Ensure it's above all content
+  },
   imageWrapper: {
     height: 150,
     width: 150,
@@ -299,13 +333,6 @@ const styles = StyleSheet.create({
     fontFamily: "serif",
     color: "#ca6be6",
     fontWeight: "bold",
-  },
-  container: {
-    color: "blue",
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
   },
   textinputstyle: {
     fontWeight: "bold",

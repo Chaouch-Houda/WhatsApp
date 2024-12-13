@@ -65,7 +65,7 @@ export default function ListProfil(props) {
       <Text style={styles.textstyle}>List profils</Text>
       <FlatList
       data={data}
-      keyExtractor={(item) => item.id?.toString()} // Ensure each item has a unique
+      keyExtractor={(item) => item.id?.toString()} // Ensure each item has a unique key
       renderItem={({item})=> {
         return (
           <View style={styles.itemStyle}>

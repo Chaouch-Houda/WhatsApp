@@ -17,7 +17,6 @@ export default function Home(props) {
   
     ref_unprofil.child("isComplete").once("value", (snapshot) => {
       const isComplete = snapshot.val();
-      console.log("🚀 ~ isComplete:", isComplete);
       if (!isComplete) {
         Alert.alert(
           "Profil incomplet",
