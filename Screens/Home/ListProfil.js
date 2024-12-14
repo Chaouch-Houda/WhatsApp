@@ -85,6 +85,16 @@ export default function ListProfil(props) {
               <Text style={{ color: "#ccc", fontSize: 14 }}>{item.pseudo}</Text>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {/* Affichage de l'état de connexion */}
+              <View
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: item.connected ? "green" : "gray",
+                  marginRight: 10,
+                }}
+              />
               {/* Icône d'appel */}
               <Text
                 style={{
@@ -98,7 +108,7 @@ export default function ListProfil(props) {
                 📞
               </Text>
 
-              {/* Icône de redirection */}
+              {/* Icône de redirection vers chat */}
               <Text
                 style={{
                   color: "#007BFF",
