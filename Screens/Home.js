@@ -15,7 +15,7 @@ export default function Home(props) {
   const database = firebase.database();
   const ref_tableProfils = database.ref("TableDeProfils");
 
-/****** fonction pour marquer l'utilisateur comme connecté lorsqu'il est en cours d'étuliser l'app ******/ 
+/****** fonction pour marquer l'utilisateur comme connecté lorsqu'il est en cours d'étuliser l'app, on a utiliser connected pour pouvoir l'accéder par les autres users, ils peuvent connaitre si je suis connecté ou pas******/ 
   const userStatusDatabaseRef = firebase.database().ref(`TableDeProfils/unprofil${currentId}/connected`);
 
   firebase.database().ref('.info/connected').on('value', (snapshot) => {

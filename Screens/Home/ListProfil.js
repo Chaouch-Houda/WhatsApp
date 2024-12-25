@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import { FlatList, Image, ImageBackground, StyleSheet, Text, View } from "react-native";
 import { Linking } from "react-native";
+import profile from "../../assets/profile.jpg";
 
 
 import firebase from "../../Config";
@@ -70,7 +71,7 @@ export default function ListProfil(props) {
         return (
           <View style={styles.itemStyle}>
             <Image
-              source={{ uri: item.uriImage || "https://via.placeholder.com/50" }}
+              source={item.uriImage ?  {uri: item.uriImage} : profile }
               style={{
                 width: 50,
                 height: 50,
@@ -82,7 +83,7 @@ export default function ListProfil(props) {
               <Text style={{ fontWeight: "bold", color: "#fff", fontSize: 16 }}>
                 {item.nom}
               </Text>
-              <Text style={{ color: "#ccc", fontSize: 14 }}>{item.pseudo}</Text>
+              <Text style={{ color: "#eee", fontSize: 14 }}>{item.pseudo}</Text>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               {/* Affichage de l'état de connexion */}

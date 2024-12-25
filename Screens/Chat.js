@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import firebase from '../Config';
 
@@ -124,14 +124,28 @@ export default function Chat(props) {
         >
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerText}>{secondUser.nom}</Text>
+        <Text style={styles.headerText}>{secondUser.pseudo} {secondUser.nom}</Text>
       </View>
 
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{flexGrow: 1, justifyContent: 'flex-end',padding:5}}
+        inverted
         renderItem={({ item }) => {const isCurrentUser = item.sender === currentUser.id;
           return (
+            <View style={{
+              flexDirection: isCurrentUser ? 'row-reverse' : 'row', // Inverser l'ordre pour `currentUser`
+              alignItems:"start",paddingTop:20}}>
+            <Image
+              source={{ uri: isCurrentUser ? (currentUser.uriImage || "https://via.placeholder.com/50") : (secondUser.uriImage || "https://via.placeholder.com/50") }}
+              style={{
+                width: 35,
+                height: 35,
+                borderRadius: 25,
+                marginRight: 3,
+              }}
+            />
             <View
               style={[
                 styles.messageContainer,
@@ -141,20 +155,19 @@ export default function Chat(props) {
               <Text style={styles.messageText}>{item.body}</Text>
               <Text style={styles.messageTime}>{item.time}</Text>
             </View>
+            </View>
           );
         }}
-        contentContainerStyle={styles.messagesList}
-        inverted
       />
       {secondIsTyping && (
-          <Text style={styles.typingText}> {secondUser.nom} is typing...</Text>
+          <Text style={styles.typingText}> {secondUser.pseudo} is typing...</Text>
       )}
 
 
       {/* Section Input */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80} // Décalage pour éviter la superposition sinon view de input devient mal stylisé lorsqu'on ouvre le clavier 
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 70} // Décalage pour éviter la superposition sinon view de input devient mal stylisé lorsqu'on ouvre le clavier 
         style={styles.inputWrapper}
       >
         <View style={styles.inputContainer}>
@@ -202,12 +215,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  messagesList: {
-    flexGrow: 1,
-    justifyContent: 'flex-end',
-  },
   messageContainer: {
     backgroundColor: '#e6e6e6',
+    maxWidth: '80%', // Limite la largeur du message
     marginVertical: 5,
     marginHorizontal: 10,
     padding: 10,
@@ -223,8 +233,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#e6e6e6', // Couleur pour les messages de le secondUser
   },
   messageText: {
-    color: '#333',
     fontSize: 16,
+  },
+  messageTime:{
+    color: '#333',
+    fontSize: 12,
+  },
+  typingText:{
+    color: '#ca6be6',
+    margin:10,
   },
   inputWrapper: {
     flex: 1,

@@ -11,9 +11,11 @@ import {
   Alert,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
+  TouchableWithoutFeedback
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons,Ionicons } from "@expo/vector-icons";
 import firebase from "../../Config";
 import { supabase } from "../../Config";
 import profile from "../../assets/profile.jpg";
@@ -31,7 +33,7 @@ export default function MyProfil(props) {
   const [isDefaultImage, setIsDefaultImage] = useState(true);
   const [uriImage, setUriImage] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Récupérer les données de profil si isComplete est true
   useEffect(() => {
@@ -44,7 +46,7 @@ export default function MyProfil(props) {
         setNom(data.nom || "");
         setpseudo(data.pseudo || "");
         setTelephone(data.telephone || "");
-        setUriImage(data.uriImage || null);
+        setUriImage(data.uriImage);
         setIsDefaultImage(!data.uriImage); // Vérifiez si une image personnalisée existe
       }
       setLoading(false);
@@ -53,6 +55,7 @@ export default function MyProfil(props) {
 
  // Fonction pour choisir une image dans la galerie
  const pickImage = async () => {
+  setModalVisible(false);
   const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
   if (permissionResult.granted === false) {
@@ -63,8 +66,32 @@ export default function MyProfil(props) {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsEditing: true,
-    aspect: [1, 1], // Aspect carré pour l'image
     quality: 1, // Haute qualité
+  });
+
+  if (!result.canceled) {
+    const fileExtension = result.assets[0].uri.split('.').pop().toLowerCase();
+
+    if (fileExtension === 'jpg' || fileExtension === 'jpeg') {
+      setUriImage(result.assets[0].uri);  // Màj l'URI de l'img
+      setIsDefaultImage(false);
+    } else {
+      Alert.alert('Erreur', 'Seuls les fichiers .jpg sont autorisés.');
+    }
+  }
+};
+// Fonction pour prendre une photo avec la caméra
+const takePhoto = async () => {
+  setModalVisible(false);
+  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+  if (status !== 'granted') {
+    Alert.alert('Permission required', 'Please allow access to your camera.');
+    return;
+  }
+
+  const result = await ImagePicker.launchCameraAsync({
+    allowsEditing: true,
+    quality: 1,
   });
 
   if (!result.canceled) {
@@ -85,36 +112,14 @@ const deleteImage = () => {
   setIsDefaultImage(true); // Revenir à l'img par défaut
 };
 
-   // Fonction pour télécharger l'image sur Supabase
-  //  const uploadImageToSupabase = async (uri) => {
-  //   try {
-  //     const fileExtension = uri.split('.').pop(); 
-  //     const fileName = `${Date.now()}.${fileExtension}`;
-  //     const response = await fetch(uri);  // Obtenez le fichier depuis l'URI
-  //     const blob = await response.blob();  // Convertir l'URI en Blob
-  //     const { data, error } = await supabase.storage
-  //       .from("ProfileImage") // Assurez-vous que vous avez un bucket "ProfileImage"
-  //       .upload(fileName, blob, {
-  //         cacheControl: "3600",
-  //         upsert: true,
-  //       });
-
-  //     if (error) {
-  //       throw error;
-  //     }
-  //     console.log("Image uploaded successfully:", data);
-  //     return data.path; // Retourner le chemin du fichier téléchargé dans Supabase
-  //   } catch (error) {
-  //     console.error("Erreur lors du téléchargement de l'image sur Supabase:", error);
-  //     Alert.alert("Erreur", "Une erreur est survenue lors du téléchargement de l'image.");
-  //     return null;
-  //   }
-  // };
-
   const uploadImageToSupabase = async (imageUri) => {
+    console.log("🚀 ~ uploadImageToSupabase ~ imageUri:", imageUri)
     setLoading(true);
     try {
       const response = await fetch(imageUri);
+    if (!response.ok) {
+      throw new Error("Erreur lors de la récupération de l'image.");
+    }
       console.log("Image fetched successfully:", response);
       const blob = await response.blob();
       console.log("Blob created:", blob);
@@ -145,6 +150,7 @@ const deleteImage = () => {
   const saveProfile = async () => {
     try {
       setLoading(true);
+
       // Validation des champs obligatoires
       if (!nom || !pseudo || !telephone) {
         Alert.alert("Erreur", "Veuillez remplir tous les champs.");
@@ -152,10 +158,12 @@ const deleteImage = () => {
       }
   
       let imageUri = uriImage;
+      console.log("🚀 ~ saveProfile ~ uriImage:", uriImage)
       // Téléchargement de l'image sur Supabase si une image est fournie
-      if (uriImage) {
+      if (uriImage && !isDefaultImage) {
         try {
           imageUri = await uploadImageToSupabase(uriImage);
+          console.log("🚀 ~ saveProfile ~ imageUri:", imageUri)
         } catch (uploadError) {
           console.error("Erreur lors du téléchargement de l'image :", uploadError);
           Alert.alert("Erreur", "Échec du téléchargement de l'image. Veuillez réessayer.");
@@ -172,13 +180,13 @@ const deleteImage = () => {
         nom,
         pseudo,
         telephone,
-        uriImage: imageUri || "", // Chemin de l'image ou chaîne vide
+        uriImage: imageUri , // Chemin de l'image ou chaîne vide
         isComplete: true,
       });
       console.log("Données enregistrées avec succès!");
       Alert.alert("Succès", "Profil enregistré avec succès !");
       // Redirection vers Home
-      // props.navigation.replace("Home", { currentId });
+      props.navigation.replace("Home", { currentId });
     } catch (error) {
       console.error("Erreur lors de l'enregistrement des données :", error);
       Alert.alert("Erreur", "Une erreur est survenue lors de l'enregistrement des données. Veuillez réessayer.");
@@ -202,12 +210,13 @@ const deleteImage = () => {
     )}
       <Text style={styles.textstyle}>My profile</Text>
       <View>
-        <TouchableHighlight onPress={pickImage} style={styles.imageWrapper}>
+        <TouchableHighlight onPress={() => setModalVisible(true)} style={styles.imageWrapper}>
           <Image
             source={isDefaultImage ? profile : { uri: uriImage }}
             style={styles.profileImage}
           />
         </TouchableHighlight>
+
         {/* Icone de poubelle */}
         {!isDefaultImage && (
           <TouchableOpacity style={styles.deleteIcon} onPress={deleteImage}>
@@ -215,7 +224,37 @@ const deleteImage = () => {
           </TouchableOpacity>
         )}
       </View>
-
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+      <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+        <View style={styles.modalContainer}>
+        <TouchableWithoutFeedback>
+          <View style={styles.modalContent}>
+            <Text style={{ fontSize: 20, fontWeight:"500",textAlign:"center",marginBottom:20 }}>Change profile picture</Text>
+            <TouchableOpacity style={styles.modalButton} onPress={takePhoto}>
+              <Ionicons name="camera-outline" size={25} color="#333" />
+              <Text style={styles.modalText}>Take photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalButton} onPress={pickImage}>
+              <Ionicons name="image-outline" size={25} color="#333" />
+              <Text style={styles.modalText}>Choose from library</Text>
+            </TouchableOpacity>
+            {/* <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setModalVisible(false)}
+            >
+              <Ionicons name="arrow-back-outline" size={25} />
+              <Text style={styles.modalText}>Cancel</Text>
+            </TouchableOpacity> */}
+          </View>
+        </TouchableWithoutFeedback>
+    </View>
+  </TouchableWithoutFeedback>
+      </Modal>
       <TextInput
         value={nom}
         onChangeText={(text) => setNom(text)}
@@ -226,6 +265,7 @@ const deleteImage = () => {
         style={styles.textinputstyle}
         paddingHorizontal="15"
       />
+
       <TextInput
         value={pseudo} 
         onChangeText={(text) => setpseudo(text)}
@@ -295,7 +335,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1, // Ensure it's above all content
@@ -342,5 +382,27 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 10,
     margin: 5,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  modalButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    // marginBottom: 10,
+  },
+  modalText: {
+    fontSize: 17,
+    color: "#333",
+    marginLeft: 10,
   },
 });

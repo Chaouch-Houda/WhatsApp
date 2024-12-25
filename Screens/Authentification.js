@@ -24,7 +24,7 @@ export default function Authentification(props) {
   const [stayConnected, setStayConnected] = useState(false);
   const refInput2 = useRef();
 
-  // Vérifier si l'utilisateur est déjà connecté
+  // Vérifier si l'utilisateur est déjà connecté s'il a choisit "rester connecté", il est géré par les sessions
   useEffect(() => {
     const checkUserSession = async () => {
       const userId = await AsyncStorage.getItem("userSession");
@@ -39,7 +39,6 @@ const saveUserSession = async (userId) => {
   try {
     await AsyncStorage.setItem('userSession', userId);
     const test = await AsyncStorage.getItem('userSession');
-    console.log("Session sauvegardée : ", test);
   } catch (error) {
     console.error('Erreur lors de la sauvegarde de la session :', error);
   }
